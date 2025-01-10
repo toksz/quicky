@@ -3,21 +3,25 @@ import ScriptInput from '@/components/ScriptInput';
 import DurationSelector from '@/components/DurationSelector';
 import ApiKeyInput from '@/components/ApiKeyInput';
 import PixabayKeyInput from '@/components/PixabayKeyInput';
+import GoogleApiKeyInput from '@/components/GoogleApiKeyInput';
 import GeminiModelSelector from '@/components/GeminiModelSelector';
+import VideoPreview from '@/components/VideoPreview';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { testPixabayConnection } from '@/lib/pixabay';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import type { PixabayVideo } from '@/lib/pixabay';
 
 const Index = () => {
   const [script, setScript] = useState('');
   const [duration, setDuration] = useState(30);
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [pixabayApiKey, setPixabayApiKey] = useState(localStorage.getItem('pixabay_api_key') || '');
-  const [geminiModel, setGeminiModel] = useState('gemini-pro');
+  const [geminiModel, setGeminiModel] = useState('gemini-1.5-pro');
   const [pixabayConnected, setPixabayConnected] = useState(false);
   const [geminiConnected, setGeminiConnected] = useState(false);
+  const [selectedVideos, setSelectedVideos] = useState<PixabayVideo[]>([]);
 
   useEffect(() => {
     const checkConnections = async () => {
@@ -80,6 +84,8 @@ const Index = () => {
           <PixabayKeyInput onSave={setPixabayApiKey} />
         )}
 
+        <GoogleApiKeyInput />
+
         <div className="space-y-6">
           <ScriptInput script={script} setScript={setScript} />
           
@@ -90,6 +96,8 @@ const Index = () => {
               <GeminiModelSelector model={geminiModel} setModel={setGeminiModel} />
             </div>
           </Card>
+
+          <VideoPreview videos={selectedVideos} />
 
           <Button 
             onClick={handleGenerate}
