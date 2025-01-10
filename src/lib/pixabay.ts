@@ -1,4 +1,4 @@
-const PIXABAY_API_KEY = ''; // We'll need to get this from environment variables
+const PIXABAY_API_KEY = ''; // We'll get this from localStorage
 
 export interface PixabayVideo {
   id: number;
@@ -30,9 +30,14 @@ export interface PixabayVideo {
 }
 
 export const searchVideos = async (query: string): Promise<PixabayVideo[]> => {
+  const apiKey = localStorage.getItem('pixabay_api_key');
+  if (!apiKey) {
+    throw new Error('Pixabay API key not found');
+  }
+
   try {
     const response = await fetch(
-      `https://pixabay.com/api/videos/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(
+      `https://pixabay.com/api/videos/?key=${apiKey}&q=${encodeURIComponent(
         query
       )}&per_page=10`
     );
@@ -41,5 +46,20 @@ export const searchVideos = async (query: string): Promise<PixabayVideo[]> => {
   } catch (error) {
     console.error('Error fetching videos:', error);
     return [];
+  }
+};
+
+export const testPixabayConnection = async (): Promise<boolean> => {
+  const apiKey = localStorage.getItem('pixabay_api_key');
+  if (!apiKey) return false;
+
+  try {
+    const response = await fetch(
+      `https://pixabay.com/api/videos/?key=${apiKey}&q=test&per_page=1`
+    );
+    const data = await response.json();
+    return !data.error;
+  } catch {
+    return false;
   }
 };
