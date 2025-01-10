@@ -39,8 +39,14 @@ export const searchVideos = async (query: string): Promise<PixabayVideo[]> => {
     const response = await fetch(
       `https://pixabay.com/api/videos/?key=${apiKey}&q=${encodeURIComponent(
         query
-      )}&per_page=10`
+      )}&per_page=3`
     );
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Pixabay API error: ${errorData.message || response.statusText}`);
+    }
+    
     const data = await response.json();
     return data.hits || [];
   } catch (error) {
@@ -55,7 +61,7 @@ export const testPixabayConnection = async (): Promise<boolean> => {
 
   try {
     const response = await fetch(
-      `https://pixabay.com/api/videos/?key=${apiKey}&q=test&per_page=1`
+      `https://pixabay.com/api/videos/?key=${apiKey}&q=test&per_page=3`
     );
     const data = await response.json();
     return !data.error;
