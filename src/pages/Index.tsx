@@ -5,7 +5,7 @@ import ApiKeyInput from '@/components/ApiKeyInput';
 import PixabayKeyInput from '@/components/PixabayKeyInput';
 import GoogleApiKeyInput from '@/components/GoogleApiKeyInput';
 import GeminiModelSelector from '@/components/GeminiModelSelector';
-import VideoPreview from '@/components/VideoPreview';
+import VideoEditor from '@/components/VideoEditor';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { testPixabayConnection } from '@/lib/pixabay';
@@ -97,7 +97,11 @@ const Index = () => {
             </div>
           </Card>
 
-          <VideoPreview videos={selectedVideos} />
+          <VideoEditor 
+            videos={selectedVideos}
+            script={script}
+            duration={duration}
+          />
 
           <Button 
             onClick={handleGenerate}
