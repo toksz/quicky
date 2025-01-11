@@ -23,17 +23,19 @@ const Index = () => {
 
   useEffect(() => {
     const checkConnections = async () => {
-      // Check Pixabay connection
       const pixabayStatus = await testPixabayConnection();
       setPixabayConnected(pixabayStatus);
       
-      // Check Google API connection
       const googleApiKey = localStorage.getItem('google_api_key');
       setGoogleConnected(!!googleApiKey);
     };
 
     checkConnections();
   }, [pixabayApiKey]);
+
+  const handleExtractKeywords = (extractedKeywords: KeywordTiming[]) => {
+    setKeywords(extractedKeywords);
+  };
 
   const totalKeywordsDuration = keywords.reduce((sum, k) => sum + k.duration, 0);
 
@@ -85,7 +87,11 @@ const Index = () => {
         </Card>
 
         <div className="space-y-6">
-          <ScriptInput script={script} setScript={setScript} />
+          <ScriptInput 
+            script={script} 
+            setScript={setScript} 
+            onExtractKeywords={handleExtractKeywords}
+          />
           
           <Card className="p-6">
             <div className="space-y-6">
