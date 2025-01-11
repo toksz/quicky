@@ -100,6 +100,24 @@ const VideoEditor = ({ keywords, script, duration, format }: VideoEditorProps) =
     }
   };
 
+  const handleDownloadAll = () => {
+    if (selectedVideos.length === 0) {
+      toast.error('No videos available to download');
+      return;
+    }
+
+    selectedVideos.forEach((video, index) => {
+      const link = document.createElement('a');
+      link.href = video.videos.small.url;
+      link.download = `background-video-${index + 1}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+    
+    toast.success('Download of all videos started!');
+  };
+
   return (
     <Card className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -163,13 +181,21 @@ const VideoEditor = ({ keywords, script, duration, format }: VideoEditorProps) =
       )}
 
       {finalVideoUrl && (
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
           <Button
             onClick={handleDownload}
             className="flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Download Background Video
+          </Button>
+          <Button
+            onClick={handleDownloadAll}
+            variant="secondary"
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download All Videos
           </Button>
         </div>
       )}

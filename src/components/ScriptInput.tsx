@@ -25,10 +25,25 @@ const ScriptInput = ({ script, setScript, onExtractKeywords }: ScriptInputProps)
   };
 
   const getSentences = () => {
-    return script
-      .split(/[.!?]+/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
+    // Improved sentence splitting that preserves punctuation and handles common abbreviations
+    const abbreviations = ['mr.', 'mrs.', 'dr.', 'prof.', 'sr.', 'jr.', 'vs.', 'etc.', 'e.g.', 'i.e.'];
+    let text = script.trim();
+    
+    // Replace periods in abbreviations temporarily
+    abbreviations.forEach(abbr => {
+      text = text.replace(new RegExp(abbr + '\\s', 'gi'), abbr.replace('.', '@') + ' ');
+    });
+
+    // Split by sentence endings while preserving the punctuation
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+
+    // Restore periods in abbreviations and trim whitespace
+    return sentences.map(sentence => {
+      abbreviations.forEach(abbr => {
+        sentence = sentence.replace(new RegExp(abbr.replace('.', '@'), 'gi'), abbr);
+      });
+      return sentence.trim();
+    }).filter(s => s.length > 0);
   };
 
   const extractKeywords = () => {
