@@ -5,95 +5,68 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Download } from 'lucide-react';
 import { PixabayVideo, searchVideos } from '@/lib/pixabay';
 import { toast } from 'sonner';
+import { KeywordTiming } from './KeywordManager';
 
 interface VideoEditorProps {
-  videos: PixabayVideo[];
+  keywords: KeywordTiming[];
   script: string;
   duration: number;
   format: 'portrait' | 'landscape';
 }
 
-const VideoEditor = ({ videos, script, duration, format }: VideoEditorProps) => {
+const VideoEditor = ({ keywords, script, duration, format }: VideoEditorProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [selectedVideos, setSelectedVideos] = useState<PixabayVideo[]>([]);
+  const [selectedVideos, setSelectedVideos] = useState<(PixabayVideo & { duration: number })[]>([]);
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
 
   const steps = [
-    { id: 1, name: 'Analyzing Script', description: 'Extracting key moments' },
-    { id: 2, name: 'Fetching Videos', description: 'Finding perfect background clips' },
-    { id: 3, name: 'Processing Videos', description: 'Trimming to perfect length' },
-    { id: 4, name: 'Finalizing', description: 'Preparing downloadable video' },
+    { id: 1, name: 'Fetching Videos', description: 'Finding perfect background clips' },
+    { id: 2, name: 'Processing Videos', description: 'Trimming to perfect length' },
+    { id: 3, name: 'Finalizing', description: 'Preparing downloadable video' },
   ];
-
-  const extractKeywords = (text: string): { keyword: string, timestamp: number }[] => {
-    const words = text.toLowerCase().split(' ');
-    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']);
-    
-    // Calculate words per second based on duration
-    const wordsPerSecond = words.length / duration;
-    
-    return words
-      .map((word, index) => ({
-        word,
-        timestamp: Math.floor(index / wordsPerSecond)
-      }))
-      .filter(({ word }) => !stopWords.has(word) && word.length > 3)
-      .map(({ word, timestamp }) => ({
-        keyword: word,
-        timestamp
-      }))
-      .filter((item, index, self) => 
-        index === self.findIndex((t) => t.timestamp === item.timestamp)
-      )
-      .slice(0, Math.ceil(duration / 5)); // One keyword every ~5 seconds
-  };
 
   const startGeneration = async () => {
     try {
+      if (keywords.length === 0) {
+        toast.error('Please add at least one keyword');
+        return;
+      }
+
       setCurrentStep(1);
       setProgress(0);
       setFinalVideoUrl(null);
+      const fetchedVideos: (PixabayVideo & { duration: number })[] = [];
 
-      // Step 1: Analyze script and extract key moments
-      const keywordTimings = extractKeywords(script);
-      await simulateProgress(1);
-
-      // Step 2: Fetch relevant videos
-      setCurrentStep(2);
-      setProgress(0);
-      const fetchedVideos: PixabayVideo[] = [];
-      
-      for (const { keyword } of keywordTimings) {
-        const results = await searchVideos(keyword);
+      // Step 1: Fetch videos for each keyword
+      for (const [index, keyword] of keywords.entries()) {
+        const results = await searchVideos(keyword.keyword);
         if (results.length > 0) {
           // Pick a random video from first 3 results
           const randomIndex = Math.floor(Math.random() * Math.min(3, results.length));
-          fetchedVideos.push(results[randomIndex]);
+          fetchedVideos.push({ ...results[randomIndex], duration: keyword.duration });
         }
-        setProgress((prevProgress) => prevProgress + (100 / keywordTimings.length));
+        setProgress((index + 1) * (100 / keywords.length));
       }
 
       setSelectedVideos(fetchedVideos);
+      await simulateProgress(1);
+
+      // Step 2: Process videos
+      setCurrentStep(2);
+      setProgress(0);
       await simulateProgress(2);
 
-      // Step 3: Process videos
+      // Step 3: Finalize
       setCurrentStep(3);
       setProgress(0);
       await simulateProgress(3);
 
-      // Step 4: Finalize
-      setCurrentStep(4);
-      setProgress(0);
-      await simulateProgress(4);
-
-      // Set the URL of the first video as the final video (in a real implementation, 
-      // this would be the combined video URL)
+      // Set the URL of the first video as the final video
       if (selectedVideos.length > 0) {
         setFinalVideoUrl(selectedVideos[0].videos.small.url);
+        toast.success('Video generation completed!');
       }
-
-      toast.success('Video generation completed!');
     } catch (error) {
       toast.error('Error generating video: ' + (error as Error).message);
       setCurrentStep(0);
@@ -134,7 +107,6 @@ const VideoEditor = ({ videos, script, duration, format }: VideoEditorProps) => 
         <Button
           onClick={startGeneration}
           disabled={currentStep !== 0}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Start Generation
         </Button>
@@ -165,11 +137,11 @@ const VideoEditor = ({ videos, script, duration, format }: VideoEditorProps) => 
         ))}
       </div>
 
-      {selectedVideos.length > 0 && currentStep > 2 && (
+      {selectedVideos.length > 0 && currentStep > 1 && (
         <div className="space-y-4">
           <h4 className="font-medium">Selected Background Footage</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {selectedVideos.map((video) => (
+            {selectedVideos.map((video, index) => (
               <div key={video.id} className="relative">
                 <video
                   src={video.videos.small.url}
@@ -182,7 +154,7 @@ const VideoEditor = ({ videos, script, duration, format }: VideoEditorProps) => 
                   Your browser does not support the video tag.
                 </video>
                 <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                  {video.duration}s
+                  {video.duration}s - {keywords[index]?.keyword}
                 </div>
               </div>
             ))}

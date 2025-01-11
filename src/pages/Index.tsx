@@ -2,25 +2,23 @@ import { useState, useEffect } from 'react';
 import ScriptInput from '@/components/ScriptInput';
 import DurationSelector from '@/components/DurationSelector';
 import FormatSelector from '@/components/FormatSelector';
+import KeywordManager, { KeywordTiming } from '@/components/KeywordManager';
 import PixabayKeyInput from '@/components/PixabayKeyInput';
 import GoogleApiKeyInput from '@/components/GoogleApiKeyInput';
 import VideoEditor from '@/components/VideoEditor';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { testPixabayConnection } from '@/lib/pixabay';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import type { PixabayVideo } from '@/lib/pixabay';
 
 const Index = () => {
   const [script, setScript] = useState('');
   const [duration, setDuration] = useState(30);
   const [format, setFormat] = useState<'portrait' | 'landscape'>('portrait');
+  const [keywords, setKeywords] = useState<KeywordTiming[]>([]);
   const [pixabayApiKey, setPixabayApiKey] = useState(localStorage.getItem('pixabay_api_key') || '');
-  const [geminiModel, setGeminiModel] = useState('gemini-1.5-pro');
   const [pixabayConnected, setPixabayConnected] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
-  const [selectedVideos, setSelectedVideos] = useState<PixabayVideo[]>([]);
   const [showApiSettings, setShowApiSettings] = useState(true);
 
   useEffect(() => {
@@ -37,17 +35,7 @@ const Index = () => {
     checkConnections();
   }, [pixabayApiKey]);
 
-  const handleGenerate = async () => {
-    if (!pixabayConnected || !googleConnected) {
-      toast.error('Please configure both API keys first');
-      return;
-    }
-
-    if (!script.trim()) {
-      toast.error('Please enter a script first');
-      return;
-    }
-  };
+  const totalKeywordsDuration = keywords.reduce((sum, k) => sum + k.duration, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -60,7 +48,10 @@ const Index = () => {
         </div>
 
         <Card className="p-6">
-          <div className="flex justify-between items-center cursor-pointer" onClick={() => setShowApiSettings(!showApiSettings)}>
+          <div 
+            className="flex justify-between items-center cursor-pointer" 
+            onClick={() => setShowApiSettings(!showApiSettings)}
+          >
             <div className="flex gap-6 items-center">
               <h3 className="text-lg font-semibold">API Settings</h3>
               <div className="flex gap-4">
@@ -88,9 +79,7 @@ const Index = () => {
           {showApiSettings && (
             <div className="mt-6 space-y-6">
               {!pixabayConnected && <PixabayKeyInput onSave={setPixabayApiKey} />}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <GoogleApiKeyInput />
-              </div>
+              {!googleConnected && <GoogleApiKeyInput />}
             </div>
           )}
         </Card>
@@ -106,8 +95,15 @@ const Index = () => {
             </div>
           </Card>
 
+          <KeywordManager 
+            keywords={keywords}
+            setKeywords={setKeywords}
+            totalDuration={totalKeywordsDuration}
+            targetDuration={duration}
+          />
+
           <VideoEditor 
-            videos={selectedVideos}
+            keywords={keywords}
             script={script}
             duration={duration}
             format={format}
