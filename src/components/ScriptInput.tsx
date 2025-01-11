@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { KeywordTiming } from './KeywordManager';
 import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
 
 interface ScriptInputProps {
   script: string;
@@ -17,34 +18,56 @@ const ScriptInput = ({ script, setScript, onExtractKeywords }: ScriptInputProps)
     setScript(e.target.value);
   };
 
+  const getEstimatedDuration = (text: string) => {
+    // Average speaking rate is about 150 words per minute
+    const words = text.trim().split(/\s+/).length;
+    return Math.ceil((words / 150) * 60);
+  };
+
+  const getSentences = () => {
+    return script
+      .split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  };
+
   const extractKeywords = () => {
     if (script.trim().length === 0) {
       toast.error('Please enter a script first');
       return;
     }
 
-    // Split script into sentences and extract key nouns and verbs
-    const sentences = script.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const sentences = getSentences();
     const keywords: KeywordTiming[] = [];
     
     sentences.forEach((sentence, index) => {
-      // Simple keyword extraction - get significant words
+      // Enhanced keyword extraction with better filtering and importance scoring
       const words = sentence
         .trim()
         .toLowerCase()
         .split(' ')
-        .filter(word => 
-          word.length > 3 && 
-          !['and', 'the', 'this', 'that', 'with', 'from', 'what', 'where', 'when', 'how'].includes(word)
-        );
+        .filter(word => {
+          // Filter out common words and keep meaningful ones
+          const commonWords = ['and', 'the', 'this', 'that', 'with', 'from', 'what', 'where', 'when', 'how', 'was', 'were', 'will', 'would', 'could', 'should', 'have', 'has', 'had', 'been'];
+          return word.length > 3 && !commonWords.includes(word);
+        });
 
-      // Take the most significant word from each sentence
-      if (words.length > 0) {
-        const keyword = words[Math.floor(words.length / 2)]; // Take middle word as likely most important
+      // Score words based on position and length
+      const scoredWords = words.map((word, idx) => ({
+        word,
+        score: (word.length * 0.5) + // longer words might be more significant
+          (idx === 0 ? 2 : 0) + // first word bonus
+          (idx === words.length - 1 ? 1 : 0) // last word bonus
+      }));
+
+      // Sort by score and take the highest scoring word
+      scoredWords.sort((a, b) => b.score - a.score);
+      
+      if (scoredWords.length > 0) {
         keywords.push({
           id: Date.now().toString() + index,
-          keyword: keyword,
-          duration: 5 // Default duration of 5 seconds per keyword
+          keyword: scoredWords[0].word,
+          duration: Math.max(5, Math.min(10, getEstimatedDuration(sentence))) // Between 5-10 seconds
         });
       }
     });
@@ -59,22 +82,44 @@ const ScriptInput = ({ script, setScript, onExtractKeywords }: ScriptInputProps)
   };
 
   return (
-    <Card className="p-6 space-y-4">
+    <Card className="p-6 space-y-6 bg-secondary/5">
       <div className="space-y-2">
-        <Label htmlFor="script">Video Script</Label>
+        <Label htmlFor="script" className="text-lg font-semibold">Video Script</Label>
         <Textarea
           id="script"
           placeholder="Enter your video script here..."
-          className="min-h-[200px] resize-none"
+          className="min-h-[200px] resize-none bg-background/50"
           value={script}
           onChange={handleScriptChange}
         />
       </div>
+
+      {script.trim().length > 0 && (
+        <>
+          <Separator />
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-muted-foreground">Script Timeline</h3>
+            <div className="space-y-3">
+              {getSentences().map((sentence, index) => (
+                <div key={index} className="flex justify-between items-start gap-4 p-2 rounded-md bg-secondary/10">
+                  <div className="flex-1">
+                    <p className="text-sm">{sentence}</p>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-nowrap">
+                    ~{getEstimatedDuration(sentence)}s
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       <div className="flex justify-between items-center">
-        <div className="text-sm text-gray-500">
-          {script.length} characters ({Math.ceil(script.length / 15)} seconds estimated)
+        <div className="text-sm text-muted-foreground">
+          Total estimated duration: {getEstimatedDuration(script)}s
         </div>
-        <Button onClick={extractKeywords}>
+        <Button onClick={extractKeywords} variant="default">
           Extract Keywords
         </Button>
       </div>
