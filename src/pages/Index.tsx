@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import ScriptInput from '@/components/ScriptInput';
 import DurationSelector from '@/components/DurationSelector';
+import FormatSelector from '@/components/FormatSelector';
 import PixabayKeyInput from '@/components/PixabayKeyInput';
 import GoogleApiKeyInput from '@/components/GoogleApiKeyInput';
-import GeminiModelSelector from '@/components/GeminiModelSelector';
 import VideoEditor from '@/components/VideoEditor';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import type { PixabayVideo } from '@/lib/pixabay';
 const Index = () => {
   const [script, setScript] = useState('');
   const [duration, setDuration] = useState(30);
+  const [format, setFormat] = useState<'portrait' | 'landscape'>('portrait');
   const [pixabayApiKey, setPixabayApiKey] = useState(localStorage.getItem('pixabay_api_key') || '');
   const [geminiModel, setGeminiModel] = useState('gemini-1.5-pro');
   const [pixabayConnected, setPixabayConnected] = useState(false);
@@ -89,7 +90,6 @@ const Index = () => {
               {!pixabayConnected && <PixabayKeyInput onSave={setPixabayApiKey} />}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <GoogleApiKeyInput />
-                <GeminiModelSelector model={geminiModel} setModel={setGeminiModel} />
               </div>
             </div>
           )}
@@ -102,6 +102,7 @@ const Index = () => {
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Video Settings</h3>
               <DurationSelector duration={duration} setDuration={setDuration} />
+              <FormatSelector format={format} setFormat={setFormat} />
             </div>
           </Card>
 
@@ -109,6 +110,7 @@ const Index = () => {
             videos={selectedVideos}
             script={script}
             duration={duration}
+            format={format}
           />
         </div>
       </div>
